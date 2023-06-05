@@ -1,0 +1,133 @@
+Enable htpasswd authentication type
+
+https://docs.openshift.com/container-platform/4.13/authentication/identity_providers/configuring-htpasswd-identity-provider.html
+
+htpasswd -c -B -b users.htpasswd user1 user1@123
+for users in user{2..30}; do htpasswd -B -b users.htpasswd $users ${users}@123;done
+oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
+oc edit Oauth/cluster
+
+- htpasswd:
+      fileData:
+        name: htpass-secret
+    mappingMethod: claim
+    name: my_htpasswd_provider
+    type: HTPasswd
+
+Wait for authentication pods to be restarted
+
+Adding more users if required
+
+oc get secret htpass-secret -ojsonpath={.data.htpasswd} -n openshift-config | base64 --decode > users.htpasswd
+htpasswd -bB users.htpasswd user31 user31@123
+oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd --dry-run=client -o yaml -n openshift-config | oc replace -f -
+
+
+
+Disable self project provisioning
+
+oc describe clusterrolebinding.rbac self-provisioners
+oc patch clusterrolebinding.rbac self-provisioners -p '{"subjects": null}'
+Or
+
+oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth       (if above describe command shows more users/groups than system:authenticated:oauth group)
+oc patch clusterrolebinding.rbac self-provisioners -p '{ "metadata": { "annotations": { "rbac.authorization.kubernetes.io/autoupdate": "false" } } }'                                                               (Apply Annotations to disable auto-update)
+
+Create project Request template
+
+https://docs.openshift.com/container-platform/4.13/nodes/clusters/nodes-cluster-limit-ranges.html
+
+
+oc adm create-bootstrap-project-template -o yaml > template.yaml
+vi template.yaml
+
+
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: project-request
+objects:
+- apiVersion: project.openshift.io/v1
+  kind: Project
+  metadata:
+    annotations:
+      openshift.io/description: ${PROJECT_DESCRIPTION}
+      openshift.io/display-name: ${PROJECT_DISPLAYNAME}
+      openshift.io/requester: ${PROJECT_REQUESTING_USER}
+    creationTimestamp: null
+    name: ${PROJECT_NAME}
+  spec: {}
+  status: {}
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    creationTimestamp: null
+    name: admin
+    namespace: ${PROJECT_NAME}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: admin
+  subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: ${PROJECT_ADMIN_USER}
+- apiVersion: v1
+  kind: "LimitRange"
+  metadata:
+    name: ${PROJECT_NAME}-limits
+    namespace: ${PROJECT_NAME}
+  spec:
+    limits:
+      - type: "Container"
+        max:
+          cpu: "2"
+          memory: "2Gi"
+        min:
+          cpu: "500m"
+          memory: "500Mi"
+        default:
+          cpu: "2"
+          memory: "2Gi"
+        defaultRequest:
+          cpu: "1"
+          memory: "1Gi"
+      - type: "PersistentVolumeClaim"
+        max:
+          storage: "10Gi"
+- apiVersion: v1
+  kind: ResourceQuota
+  metadata:
+    name: ${PROJECT_NAME}-quota
+    namespace: ${PROJECT_NAME}
+  spec:
+    hard:
+      pods: "10"
+      requests.cpu: "6"
+      requests.memory: "6Gi"
+      limits.cpu: "9"
+      limits.memory: "9Gi"
+      requests.storage: "20Gi"
+parameters:
+- name: PROJECT_NAME
+- name: PROJECT_DISPLAYNAME
+- name: PROJECT_DESCRIPTION
+- name: PROJECT_ADMIN_USER
+- name: PROJECT_REQUESTING_USER
+
+
+
+oc create -f template.yaml -n openshift-config
+oc edit project.config.openshift.io/cluster
+spec:
+  projectRequestTemplate:
+    name: project-request
+
+Wait for apiserver pods to be restarted.
+
+for project in user{1..30};do oc new-project $project; done
+for user in user{1..30}; do oc adm policy add-role-to-user admin $user -n $user;done
+
+If need to delete the projects
+for project in user{1..30};do oc delete project $project --force; done
