@@ -1,0 +1,22 @@
+apiVersion: "autoscaling.openshift.io/v1"
+kind: "ClusterAutoscaler"
+metadata:
+  name: "default"
+spec:
+  podPriorityThreshold: -10
+  resourceLimits:
+    maxNodesTotal: 18
+    cores:
+      min: 136
+      max: 216
+    memory:
+      min: 544
+      max: 864
+  logVerbosity: 1
+  scaleDown:
+    enabled: true
+    delayAfterAdd: 10m
+    delayAfterDelete: 5m
+    delayAfterFailure: 30s
+    unneededTime: 5m
+    utilizationThreshold: "0.6"
