@@ -1,0 +1,26 @@
+apiVersion: "autoscaling.openshift.io/v1beta1"
+kind: "MachineAutoscaler"
+metadata:
+  name: "worker-us-east-1a"                                - This should be replaced with the name of hackathon machine set created in zone 1 
+  namespace: "openshift-machine-api"
+spec:
+  minReplicas: 3
+  maxReplicas: 6
+  scaleTargetRef:
+    apiVersion: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: worker-us-east-1a                               - This should be replaced with the name of hackathon machine set created in zone 1
+
+For hackathon machine set in zone 2
+apiVersion: "autoscaling.openshift.io/v1beta1"
+kind: "MachineAutoscaler"
+metadata:
+  name: "worker-us-east-1a"                                - This should be replaced with the name of hackathon machine set created in zone 2 
+  namespace: "openshift-machine-api"
+spec:
+  minReplicas: 3
+  maxReplicas: 5
+  scaleTargetRef:
+    apiVersion: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: worker-us-east-1a                               - This should be replaced with the name of hackathon machine set created in zone 2
