@@ -10,3 +10,10 @@ spec:
     systemReserved:
       cpu: 4000m
       memory: 12Gi
+
+-- To check later whether settings has been enabled or not --
+oc debug node/<node_name>
+chroot /host
+cat /etc/node-sizing.env
+SYSTEM_RESERVED_MEMORY=3Gi
+SYSTEM_RESERVED_CPU=0.08
