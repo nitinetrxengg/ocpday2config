@@ -1,0 +1,1 @@
+Approving Certificates - for csr in $(oc get csr | awk '/Pending/ {print $1}'); do oc adm certificate approve $csr; done
