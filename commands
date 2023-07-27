@@ -77,3 +77,14 @@ spec:
         persistentVolumeClaim:
           claimName: rhel8-ocs
 EOF
+
+
+
+changing images through libguestfstools
+
+dnf install libguestfs-tools -y
+
+systemctl enable --now libvirtd
+virt-customize -a /var/www/html/<imagename> --run-command 'sed -i s/^#PermitRootLogin.*/PermitRootLogin\ yes/ /etc/ssh/sshd_config && touch /.autorelabel'
+
+virt-customize -a /var/www/html/Fedora-Cloud-Base-34-1.2.x86_64.raw --uninstall=cloud-init --root-password password:<set plaintext secure password here> --ssh-inject root:file:/root/.ssh/id_rsa.pub
