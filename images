@@ -1,1 +1,3 @@
 quay.io/andrewazores/quarkus-test:0.0.10 - Image with JMX enabled for Cryostat testing as well.. Quarkus Java Application
+
+NodejsS2I code  - oc new-app nodejs~https://github.com/vrutkovs/DuckHunt-JS
