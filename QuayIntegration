@@ -1,0 +1,12 @@
+apiVersion: quay.redhat.com/v1
+kind: QuayIntegration
+metadata:
+  name: quay
+spec:
+  clusterID: openshift
+  credentialsSecret:
+    name: quay-token
+    namespace: openshift-operators
+  insecureRegistry: true
+  organizationPrefix: ocpcluster1
+  quayHostname: 'https://registry-quay-registry.apps.rhocp.xxxx.com'
