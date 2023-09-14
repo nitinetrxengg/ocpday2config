@@ -1,0 +1,66 @@
+If you have installed OCP cluster in IPI mode & want to change the master node configurations in automated way, 
+then from OCP 4.12 there is a concept of Control Plane Nodes machine sets which can be utilised for this.. 
+  
+It is supported on AWS, Azure, GCP & VMware installed in IPI mode.
+
+During one of the customer POC today, OCP was installed on VMware in IPI mode which creates masters with 4 vCPUs & 16 GB RAM.. 
+I want to upgrade it to 6 vCPUs & 24 GB RAM. For this requirement, Control Plane nodes machine set was created & then OCP automatically creates 
+the 3 new master nodes with new configurations in rolling fashion without impacting the cluster.
+
+https://docs.openshift.com/container-platform/4.13/machine_management/control_plane_machine_management/cpmso-about.html
+
+VMware Control plane machineset file
+
+The below environment specific details can be gathered by checking existing master machines created - oc get machine <machinename> -o yaml
+
+-------
+apiVersion: machine.openshift.io/v1
+kind: ControlPlaneMachineSet
+metadata:
+  name: cluster
+  namespace: openshift-machine-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: rhocp-vgvxn <ClusterName>
+      machine.openshift.io/cluster-api-machine-role: master
+      machine.openshift.io/cluster-api-machine-type: master
+  state: Active
+  strategy:
+    type: RollingUpdate
+  template:
+    machineType: machines_v1beta1_machine_openshift_io
+    machines_v1beta1_machine_openshift_io:
+      metadata:
+        labels:
+          machine.openshift.io/cluster-api-cluster: rhocp-vgvxn
+          machine.openshift.io/cluster-api-machine-role: master
+          machine.openshift.io/cluster-api-machine-type: master
+      spec:
+        providerSpec:
+          value:
+            apiVersion: machine.openshift.io/v1beta1
+            credentialsSecret:
+              name: vsphere-cloud-credentials
+            diskGiB: 120
+            kind: VSphereMachineProviderSpec
+            memoryMiB: 24576
+            metadata:
+              creationTimestamp: null
+            network:
+              devices:
+              - networkName: UAT-MGMT
+            numCPUs: 6
+            numCoresPerSocket: 6
+            snapshot: ""
+            template: rhocp-vgvxn-rhcos-generated-region-generated-zone <templatename created in OCP Installation)
+            userDataSecret:
+              name: master-user-data
+            workspace:
+              datacenter: Staging_Datacenter
+              datastore: /Staging_Datacenter/datastore/VV03
+              folder: /Staging_Datacenter/vm/rhocp-vgvxn
+              resourcePool: /Staging_Datacenter/host/HA Cluster - STG//Resources
+              server: 0.0.0.0   <vCenter IP address or Hostname>
+  ----------
